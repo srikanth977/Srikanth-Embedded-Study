@@ -1,4 +1,24 @@
 # Bootloader for STM32F411CEUx
+## Version : 1.1
+### Whats New
+1. Added Minimal CRC Checks on the PCTool as well as in Microcontroller 
+2. Minimized HAL library usage in ````UART_Receive````. Plan is to remove entire HAL library and upload the bare metal version.
+3. Instead of LED's, used ST7735 SPI LCD for messages indications
+
+### Next plan
+1. Bare metal implementation of the code
+2. Checksum in the firmware file and verifying its integrity
+3. Maintaining two regions of Flash as RUNNING & DOWNLOADED configurations to minimize loosing running program in case of flash errors.
+
+### Credits and References:
+A good resource for understanding of bootloader working and its design is present in folder ````REFERENCE````.
+
+git - https://github.com/Embetronicx/STM32-Bootloader/tree/main/Bootloader_Example
+
+Web version - https://embetronicx.com/bootloader-tutorials/
+
+Video version - https://www.youtube.com/watch?v=jzo7z2gNBgg&list=PLArwqFvBIlwHRgPtsQAhgZavlp42qpkiG
+
 ## Version : 1.0
 ### Introduction:
 This is a simple bootloader designed with inspiration from youtube video series (links given below in References section).

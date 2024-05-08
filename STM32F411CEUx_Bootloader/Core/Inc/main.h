@@ -31,21 +31,17 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#define OTA_DATA_MAX_SIZE ( 1024 )  //Maximum data Size
-#define OTA_DATA_OVERHEAD (    9 )  //data overhead
-#define OTA_PACKET_MAX_SIZE ( OTA_DATA_MAX_SIZE + OTA_DATA_OVERHEAD )
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
-extern unsigned char data_in[OTA_PACKET_MAX_SIZE];
-extern unsigned int DataPos;
-extern unsigned int TotalCharsReceived;
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
 /* USER CODE BEGIN EC */
+
 /* USER CODE END EC */
 
 /* Exported macro ------------------------------------------------------------*/
@@ -67,6 +63,12 @@ void Error_Handler(void);
 #define APPMODE_LED_GPIO_Port GPIOA
 #define BOOTMODE_LED_Pin GPIO_PIN_2
 #define BOOTMODE_LED_GPIO_Port GPIOA
+#define ST7735_DC_Pin GPIO_PIN_0
+#define ST7735_DC_GPIO_Port GPIOB
+#define ST7735_RES_Pin GPIO_PIN_1
+#define ST7735_RES_GPIO_Port GPIOB
+#define ST7735_CS_Pin GPIO_PIN_2
+#define ST7735_CS_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

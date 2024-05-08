@@ -24,5 +24,7 @@ C_DEPS :=
 SUBDIRS := \
 Core/Src \
 Core/Startup \
+Drivers/OTA_UART/Src \
+Drivers/ST7735_LCD/Src \
 Drivers/STM32F4xx_HAL_Driver/Src \
 

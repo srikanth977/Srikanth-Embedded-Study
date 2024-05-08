@@ -7,12 +7,12 @@
     <stringAttribute key="com.st.stm32cube.ide.mcu.debug.launch.debug_auth_key_path" value=""/>
     <stringAttribute key="com.st.stm32cube.ide.mcu.debug.launch.debug_auth_permission" value=""/>
     <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.launch.enable_live_expr" value="true"/>
-    <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.launch.enable_swv" value="true"/>
+    <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.launch.enable_swv" value="false"/>
     <intAttribute key="com.st.stm32cube.ide.mcu.debug.launch.formatVersion" value="2"/>
     <stringAttribute key="com.st.stm32cube.ide.mcu.debug.launch.ip_address_local" value="localhost"/>
     <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.launch.limit_swo_clock.enabled" value="false"/>
     <stringAttribute key="com.st.stm32cube.ide.mcu.debug.launch.limit_swo_clock.value" value=""/>
-    <stringAttribute key="com.st.stm32cube.ide.mcu.debug.launch.loadList" value="{&quot;fItems&quot;:[{&quot;fIsFromMainTab&quot;:true,&quot;fPath&quot;:&quot;Debug/STM32F411CEUx_Bootloader.elf&quot;,&quot;fProjectName&quot;:&quot;STM32F411CEUx_Bootloader&quot;,&quot;fPerformBuild&quot;:true,&quot;fDownload&quot;:true,&quot;fLoadSymbols&quot;:true},{&quot;fIsFromMainTab&quot;:false,&quot;fPath&quot;:&quot;Debug\\STM32F411CEUx_Boot_Application.elf&quot;,&quot;fProjectName&quot;:&quot;STM32F411CEUx_Boot_Application&quot;,&quot;fUseActiveBuildConfig&quot;:true,&quot;fPerformBuild&quot;:true,&quot;fDownload&quot;:false,&quot;fLoadSymbols&quot;:true}]}"/>
+    <stringAttribute key="com.st.stm32cube.ide.mcu.debug.launch.loadList" value="{&quot;fItems&quot;:[{&quot;fIsFromMainTab&quot;:true,&quot;fPath&quot;:&quot;Debug/STM32F411CEUx_Bootloader.elf&quot;,&quot;fProjectName&quot;:&quot;STM32F411CEUx_Bootloader&quot;,&quot;fPerformBuild&quot;:true,&quot;fDownload&quot;:true,&quot;fLoadSymbols&quot;:true}]}"/>
     <stringAttribute key="com.st.stm32cube.ide.mcu.debug.launch.override_start_address_mode" value="default"/>
     <stringAttribute key="com.st.stm32cube.ide.mcu.debug.launch.remoteCommand" value="target remote"/>
     <booleanAttribute key="com.st.stm32cube.ide.mcu.debug.launch.startServer" value="true"/>

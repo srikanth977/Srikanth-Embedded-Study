@@ -12,23 +12,18 @@
  * This software is licensed under terms that can be found in the LICENSE file
  * in the root directory of this software component.
  * If no LICENSE file comes with this software, it is provided AS-IS.
- * )
- ******************************************************************************
- * SOURCE OF THIS TUTORIAL:
- * 	PART1 & 2 (THIS REVISION) https://www.youtube.com/watch?v=jzo7z2gNBgg&list=PLArwqFvBIlwHRgPtsQAhgZavlp42qpkiG&index=1
  *
+ ******************************************************************************
  */
-
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdio.h>
-#include <string.h>
-#include "etx_ota_update.h"
-#include <stdbool.h>
+#include "OTA_UART.h"
+#include "st7735.h"
+#include "fonts.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,7 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define ENABLE_TRACE
+//#define ENABLE_TRACE
 #ifdef ENABLE_TRACE
 #define DEMCR                 *((volatile uint32_t*) 0xE000EDFCu)
 
@@ -46,36 +41,36 @@
 #define ITM_STIMULUS_PORT0    *((volatile uint32_t*) 0xE0000000u)
 #define ITM_TRACE_EN          *((volatile uint32_t*) 0xE0000E00u)
 #endif
+
+#define MAJOR		1		// Major revision
+#define MINOR		1		//Minor revision
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-#define MAJOR		1		// Major revision
-#define MINOR		0		//Minor revision
 
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+SPI_HandleTypeDef hspi1;
+
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 const uint8_t BL_Version[2]={MAJOR,MINOR};
-char BOOTString[64];
-uint16_t fwsize = 0;
-uint16_t ota_fw_received_size=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
-
-void Set_BOOTMODE_LED(void);
-void Set_APPMODE_LED(void);
+ENM_OTA_RET_ ota_begin( void );
 static void goto_application(void);
-static int write_data_to_flash_app( uint8_t *data,uint16_t data_len, bool is_first_block);
-static void etx_ota_send_resp( uint8_t type );
+
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -91,10 +86,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	uint32_t index=0;
-
-	uint16_t chunksize=0;
-	int ex =0;
 
   /* USER CODE END 1 */
 
@@ -117,15 +108,16 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-	printf("Starting Bootloader %d.%d \n\r",BL_Version[0],BL_Version[1]);
-	Set_BOOTMODE_LED();
 
+	ST7735_Init();
+	ST7735_FillScreen(ST7735_COLOUR_BLACK);
+	printf("Bootloader:%d.%d\n",BL_Version[0],BL_Version[1]);
 	/* Check the GPIO for 3 seconds */
 	GPIO_PinState OTA_Pin_state;
 	uint32_t end_tick = HAL_GetTick() + 3000;   // from now to 3 Seconds
-
-	printf("Press the User Button PA0 to trigger OTA update...\r\n");
+	printf("PRESS BTN FOR FW UPD\n");
 	do
 	{
 		OTA_Pin_state = HAL_GPIO_ReadPin( BTN_OTA_GPIO_Port, BTN_OTA_Pin);
@@ -142,74 +134,36 @@ int main(void)
 	/*Start the Firmware or Application update */
 	if( OTA_Pin_state == GPIO_PIN_SET )
 	{
+		printf("ENTERED OTA.\n");
 		HAL_GPIO_WritePin(BOOTMODE_LED_GPIO_Port, BOOTMODE_LED_Pin, GPIO_PIN_RESET);
 		HAL_Delay(500);
 		HAL_GPIO_WritePin(BOOTMODE_LED_GPIO_Port, BOOTMODE_LED_Pin, GPIO_PIN_SET);
 		//USART1->CR1 |= USART_CR1_RXNEIE;		/* Enable Receive interrupt */
-		printf("Starting Firmware Download!!!\r\n");
-
-		do
+		/* OTA Request. Receive the data from the UART4 and flash */
+		if(ota_begin() != ENM_OTA_RET_OK)
 		{
-			memset(data_in, 0, ETX_OTA_PACKET_MAX_SIZE);	//CLEAR THE ARRAY
-			index=0;
-			do
+			/* Error. Don't process. */
+			//  				//printf("OTA Update : ERROR!!! HALT!!!\r\n");
+			while(1)
 			{
-				while( !( USART1->SR & USART_SR_RXNE ) ) {};	/* Timeout also has to be designed */
-				data_in[index++]=USART1->DR;
-				if (data_in[0] != ETX_OTA_SOF)
-				{
-					printf("Not valid Start packet, EXITING!!! \n\r");
-					break;
-				}
-				//check chunk length
-				if (index>=6)
-				{
-					chunksize = (data_in[3]<<8u) + (data_in[2])+7;
-					fwsize = (data_in[5]<<8u) + (data_in[4]);
-				}
-				TotalCharsReceived =index;
-			}
-			while (data_in[chunksize-1] != ETX_OTA_EOF);	//this byte has to be received, else it will be stuck here
 
-			/*
-			 * This is required,
-			 * But for now let us assume that if EOF is not matching then if will get stuck in above while loop
-			 * verify EOF. */
-
-			//ota_fw_received_size=chunksize-7 /*  1B-SOF + 1B-TYPE + 2B-CHUNKSIZE + 2B-FWSIZE + .... + 1B-EOF = 7B  */;
-			//printf("[%d/%d]chunksize is %d, firmware size is %d \n\r",counter++,(fwsize/OTA_PACKET_MAX_SIZE),chunksize,fwsize);
-			printf("Copying the chunk to flash\n\r");
-			/* write the chunk to the Flash (App location) */
-			write_data_to_flash_app( &data_in[6], chunksize-7, (ota_fw_received_size == 0));
-			if( ex == HAL_OK )
-			{
-				printf("[%d of %d bytes received]\r\n", ota_fw_received_size, fwsize);
-
-				/*
-				 * Sending Acknowledgement to recieve another batch of FW chunk
-				 */
-				etx_ota_send_resp(ETX_OTA_ACK);
-				//			while( !( USART1->SR & USART_SR_TXE ) ) {};
-				//			USART2->DR = rxb;
-			}
-			else
-			{
-				printf("FLASH ERROR, EXITING!!!\n\r");
-				break;
 			}
 		}
-		while( !(ota_fw_received_size >= fwsize) );
-		//received the full data. So, move to end
-		printf("FLASH UPDATED, Rebooting...\n\r");
-		HAL_NVIC_SystemReset();
-	}
-	else
-	{
-		printf("Button press karna \n\r");
+		else
+		{
+			/* Reset to load the new application */
+			printf("UPD SUCCESS.REBOOTING\n");
+			HAL_Delay(2000);
+			HAL_NVIC_SystemReset();
+		}
 	}
 
-	HAL_Delay(2000);
+	// Jump to application
 	goto_application();
+	printf("ENTERING BOOT WHILE!!\n");
+
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -269,6 +223,44 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_1LINE;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 10;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
   * @brief USART1 Initialization Function
   * @param None
   * @retval None
@@ -284,7 +276,7 @@ static void MX_USART1_UART_Init(void)
 
   /* USER CODE END USART1_Init 1 */
   huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
+  huart1.Init.BaudRate = 9600;
   huart1.Init.WordLength = UART_WORDLENGTH_8B;
   huart1.Init.StopBits = UART_STOPBITS_1;
   huart1.Init.Parity = UART_PARITY_NONE;
@@ -316,9 +308,13 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, APPMODE_LED_Pin|BOOTMODE_LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, ST7735_DC_Pin|ST7735_RES_Pin|ST7735_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : BTN_OTA_Pin */
   GPIO_InitStruct.Pin = BTN_OTA_Pin;
@@ -333,122 +329,44 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : ST7735_DC_Pin ST7735_RES_Pin ST7735_CS_Pin */
+  GPIO_InitStruct.Pin = ST7735_DC_Pin|ST7735_RES_Pin|ST7735_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
-void Set_BOOTMODE_LED(void)
-{
-	HAL_GPIO_WritePin(BOOTMODE_LED_GPIO_Port, BOOTMODE_LED_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(APPMODE_LED_GPIO_Port, APPMODE_LED_Pin, GPIO_PIN_RESET);
-}
-
-void Set_APPMODE_LED(void)
-{
-	HAL_GPIO_WritePin(BOOTMODE_LED_GPIO_Port, BOOTMODE_LED_Pin, GPIO_PIN_RESET);
-	HAL_GPIO_WritePin(APPMODE_LED_GPIO_Port, APPMODE_LED_Pin, GPIO_PIN_SET);
-}
-
-static void etx_ota_send_resp( uint8_t type )
-{
-  ETX_OTA_RESP_ rsp =
-  {
-    .sof         = ETX_OTA_SOF,
-    .packet_type = ETX_OTA_PACKET_TYPE_RESPONSE,
-    .data_len    = 1u,
-    .status      = type,
-    .crc         = 0u,                //TODO: Add CRC
-    .eof         = ETX_OTA_EOF
-  };
-
-  //send response
-  HAL_UART_Transmit(&huart1, (uint8_t *)&rsp, sizeof(ETX_OTA_RESP_), HAL_MAX_DELAY);
-}
-
 /**
- * @brief Write data to the Application's actual flash location.
- * @param data data to be written
- * @param data_len data length
- * @is_first_block true - if this is first block, false - not first block
- * @retval HAL_StatusTypeDef
- */
-static int write_data_to_flash_app( uint8_t *data,
-		uint16_t data_len, bool is_first_block)
-{
-	HAL_StatusTypeDef ret;
-
-	do
-	{
-		ret = HAL_FLASH_Unlock();
-		if( ret != HAL_OK )
-		{
-			break;
-		}
-
-		//No need to erase every time. Erase only the first time.
-		if( is_first_block )
-		{
-			printf("Erasing the Flash memory...\r\n");
-			//Erase the Flash
-			FLASH_EraseInitTypeDef EraseInitStruct;
-			uint32_t SectorError;
-
-			EraseInitStruct.TypeErase     = FLASH_TYPEERASE_SECTORS;
-			EraseInitStruct.Sector        = FLASH_SECTOR_5;
-			EraseInitStruct.NbSectors     = 2;                    //erase 2 sectors(5,6)
-			EraseInitStruct.VoltageRange  = FLASH_VOLTAGE_RANGE_3;
-
-			ret = HAL_FLASHEx_Erase( &EraseInitStruct, &SectorError );
-			if( ret != HAL_OK )
-			{
-				break;
-			}
-		}
-		printf("FLASH write at address %x \n\r", (ETX_APP_FLASH_ADDR + ota_fw_received_size));
-		for(int i = 0; i < data_len; i++ )
-		{
-			ret = HAL_FLASH_Program(FLASH_TYPEPROGRAM_BYTE,
-					(ETX_APP_FLASH_ADDR + ota_fw_received_size),
-					data[i]
-			);
-			if( ret == HAL_OK )
-			{
-				//update the data count
-				ota_fw_received_size += 1;
-
-			}
-			else
-			{
-				printf("Flash Write Error\r\n");
-				break;
-			}
-		}
-		//printf("FLASH written at address %x \n\r", (ETX_APP_FLASH_ADDR + ota_fw_received_size));
-		//printf("%d bytes written in flash \n\r", ota_fw_received_size);
-		ret = HAL_FLASH_Lock();
-		if( ret != HAL_OK )
-		{
-			break;
-		}
-	}while( false );
-
-	return ret;
-}
-
+  * @brief Jump to application from the Bootloader
+  * @retval None
+  */
 static void goto_application(void)
 {
-	printf("Will jump to application\n\r");
-	HAL_UART_DeInit(&huart1);	//DEINITIALIZE THE UART
-	void (*app_reset_handler) (void) = (void*) ( *(volatile uint32_t *) (0x08020000 + 4));
-	void Set_APPMODE_LED();
-	app_reset_handler();		//call the application reset handler
-}
+	printf("ENTERING APPLICATION\n");
 
-/**
- * @brief Print the characters to USB OR SERIAL WIRE VIEWER TRACE (printf).
- * @retval int
- */
+  void (*app_reset_handler)(void) = (void*)(*((volatile uint32_t*) (OTA_APP_FLASH_ADDR + 4U)));
+
+  // Turn OFF the Green Led to tell the user that Bootloader is not running
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET );    //Green LED OFF
+
+  /* Reset the Clock */
+  HAL_RCC_DeInit();
+  HAL_DeInit();
+  HAL_UART_DeInit(&huart1);
+  HAL_SPI_DeInit(&hspi1);
+  __set_MSP(*(volatile uint32_t*) OTA_APP_FLASH_ADDR);
+  SysTick->CTRL = 0;
+  SysTick->LOAD = 0;
+  SysTick->VAL = 0;
+
+  /* Jump to application */
+  app_reset_handler();    //call the app reset handler
+}
 
 #ifdef ENABLE_TRACE
 /* Override low-level _write system call */
@@ -465,19 +383,8 @@ int _write(int file, char *ptr, int len)
 
 int _write(int file, char *ptr, int len)
 {
-	static uint8_t rc = USBD_OK;
+	ST7735_WriteDebugString(ptr);
 
-	do
-	{
-		rc = CDC_Transmit_FS(ptr, len);
-	} while (USBD_BUSY == rc);
-
-	if (USBD_FAIL == rc)
-	{
-		/// NOTE: Should never reach here.
-		/// TODO: Handle this error.
-		return 0;
-	}
 	return len;
 }
 #endif

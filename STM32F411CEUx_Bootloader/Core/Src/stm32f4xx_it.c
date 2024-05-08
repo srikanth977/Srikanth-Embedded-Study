@@ -22,7 +22,7 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "etx_ota_update.h"
+#include "OTA_UART.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -42,9 +42,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-unsigned char data_in[OTA_PACKET_MAX_SIZE];
-unsigned int DataPos=0;
-unsigned int TotalCharsReceived=0;
+uint16_t DataIndex;
+uint8_t Rx_Buffer [ DEF_OTA_PACKET_MAX_SIZE ];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -60,6 +59,7 @@ unsigned int TotalCharsReceived=0;
 /* External variables --------------------------------------------------------*/
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
+
 
 /* USER CODE END EV */
 
@@ -207,23 +207,7 @@ void SysTick_Handler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
-//	char temp;
-//	//Check if RS232 Frame Error
-//		if(USART1->SR & (1<<7U))	//PARITY ERROR, FRAME ERROR, NOISE THEN ABORT IT
-//		{
-//			/* Abort code */
-//			printf("Received data is not good \n\r");
-//			//clear overrun flags
-//			temp = USART1->SR;
-//			temp =USART1->DR;
-//			//wE ARE NOT YET CLEAR ON OUR PROTOCOL IF I RECEIVED AN OVERRUN
-//		}
-//		else
-//		{
-//			  data_in[DataPos++]=USART1->DR;
-//			  TotalCharsReceived =DataPos;
-//		}
-//
+
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
