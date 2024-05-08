@@ -11,3 +11,4 @@ Not all specs of Modbus standard are covered. I shall try to cover them in my su
 
 List of uploads (Refer Github tag for corresponding Chapter):
 1. Ch01 : Holding register Read. Basic with exception codes 01, 02,03 implemented.
+2. Ch02 : Discrete Coil Read, Discrete Input Read and Analog Input Read are added.

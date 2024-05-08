@@ -93,7 +93,10 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  unsigned int HoldingRegSize = (sizeof(HoldingRegisters)/sizeof(HoldingRegisters[0]));
+  unsigned int InputRegSize = (sizeof(InputRegisters)/sizeof(InputRegisters[0]));
+  unsigned int DiscreteInputsSize = (sizeof(DiscreteInputs)/sizeof(DiscreteInputs[0]));
+  unsigned int CoilsSize = (sizeof(Coils)/sizeof(Coils[0]));
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -109,10 +112,28 @@ int main(void)
 		  //STEP 2: Check function code
 		  switch(data_in[1])
 		  {
+		  case 0x01:
+		  {
+			  //checking if requested register count fits in data buffer (256 size - 6)
+			  MBProcessBits(Coils, CoilsSize);
+		  }
+		  break;
+		  case 0x02:
+		  {
+			  //checking if requested register count fits in data buffer (256 size - 6)
+			  MBProcessBits(DiscreteInputs, DiscreteInputsSize);
+		  }
+		  break;
 		  case 0x03:
 		  {
 			  //checking if requested register count fits in data buffer (256 size - 6)
-			  MBProcessRegisters(data_in[1]);
+			  MBProcessRegisters(HoldingRegisters, HoldingRegSize);
+		  }
+		  break;
+		  case 0x04:
+		  {
+			  //checking if requested register count fits in data buffer (256 size - 6)
+			  MBProcessRegisters(InputRegisters, InputRegSize);
 		  }
 		  break;
 		  default:
@@ -124,6 +145,7 @@ int main(void)
 		  }
 	  }
   }
+
   /* USER CODE END 3 */
 }
 
