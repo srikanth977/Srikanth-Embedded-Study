@@ -9,8 +9,8 @@
 #define MODBUSRTU_SLAVE_INC_MODBUSRS232SLAVE_H_
 
 #define MaxFrameIndex 255u
-#define fc3_HoldingRegMax 125u
-#define fc3_HoldingRegOffset 40001u
+
+
 extern unsigned char MY_SLAVE_ID;
 extern volatile unsigned char ResponseFrameSize;
 extern volatile unsigned char data_in[MaxFrameIndex+1];
@@ -21,6 +21,16 @@ extern unsigned int HoldingRegSize;
 extern unsigned int InputRegSize;
 extern unsigned int CoilsRegsize;
 extern unsigned int DiscreteInputRegsize;
+
+//Diagnostic counters
+extern unsigned int BusMsgCount;		//Bus Message Count
+extern unsigned int BusCommErrCount;	//Bus Communication Error Count
+extern unsigned int SlaveExErrCount;	//Bus Exception Error Count
+extern unsigned int SlaveMsgCount;		//Slave Message Count
+extern unsigned int SlaveNoRspCount;	//Slave No Response Count
+extern unsigned int SlaveNAKCount;		//Slave NAK Count
+extern unsigned int SlaveBusyCount;	//Slave Busy Count
+extern unsigned int BusChrOvrCount;	//Bus Character Overrun Count
 
 //Holding Register Array
 static unsigned int HoldingRegisters[] = {
@@ -66,6 +76,7 @@ static unsigned char DiscreteInputs[] = {
 		0b11010110,	0b0010110,	0b01110101,	0b01011101,	0b01011010,	0b00011100,	0b11010110,	0b01111011,	0b10011110, 0b11111010		//40-49
 };
 
+void MB_Init(void);
 unsigned short CRC16 (volatile unsigned char *puchMsg, unsigned short usDataLen );
 unsigned int MBRegisterCount(void);
 void AppendDatatoMBRegister(unsigned int StAddr,unsigned int count, unsigned int *inreg, volatile unsigned char *outreg);
@@ -73,9 +84,21 @@ unsigned int MBStartAddress(void);
 void MBSendData(unsigned char count);
 void AppendCRCtoMBRegister(unsigned char packtop);
 void MBException(unsigned char exceptionCode);
-void MBProcessRegisters(unsigned int *InArr, unsigned int InArrSize);
-void MBProcessBits(unsigned char *InArr, unsigned int InArrSize);
+void MBProcessRegisterRead(unsigned int *InArr, unsigned int InArrSize);
 void AppendBitsToRegisters(unsigned int StAddr, unsigned int count, unsigned char *inreg, volatile unsigned char *outreg);
+void MBProcessBitsRead(unsigned char *InArr, unsigned int InArrSize);
 void CheckMBPDU(void);
-void Modbus_Registers_Init(void);
+
+
+void WriteMBRegistertoData(unsigned int StAddr,unsigned int count, volatile unsigned char *inreg, unsigned int *outreg);
+void MBPresetSingleRegister(unsigned int *InArr, unsigned int InArrSize);
+void MBPresetMultipleRegisters(unsigned int *InArr, unsigned int InArrSize);
+
+void MBForceSingleCoil(unsigned char *InArr, unsigned int InArrSize);
+void MBForceMultipleCoils(unsigned char *InArr, unsigned int InArrSize);
+void WriteMBRegistersToBits(unsigned int StAddr, unsigned int count, volatile unsigned char *inreg,unsigned char *outreg);
+
+unsigned int ReturnDiagCounter(unsigned int scode);
+void ClearModbusCounters(void);
+void MBProcessDiagnostics(void);
 #endif /* MODBUSRTU_SLAVE_INC_MODBUSRS232SLAVE_H_ */

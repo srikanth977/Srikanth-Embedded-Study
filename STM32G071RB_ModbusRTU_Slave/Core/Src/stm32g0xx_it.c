@@ -157,7 +157,7 @@ void TIM6_DAC_LPTIM1_IRQHandler(void)
 		TIM6->SR = 0U;		//CLEARING 1.5CHAR TIMER INTERRUPT (IF ANY)
 	}
   /* USER CODE END TIM6_DAC_LPTIM1_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim6);
+//  HAL_TIM_IRQHandler(&htim6);
   /* USER CODE BEGIN TIM6_DAC_LPTIM1_IRQn 1 */
 
   /* USER CODE END TIM6_DAC_LPTIM1_IRQn 1 */
@@ -194,6 +194,13 @@ void USART2_IRQHandler(void)
 	TIM6->CNT=0U;		//CLEAR COUNTER VALUES
 	TIM7->CNT=0U;		//CLEAR
 
+	//Check if RS232 Frame Error
+	if(USART2->ISR & (1<<3U))
+	{
+		BusChrOvrCount+=1;
+		USART2->ICR=1<<3U;	//CLEAR OVERRUN FLAG
+		//wE ARE NOT YET CLEAR ON OUR PROTOCOL IF I RECEIVED AN OVERRUN
+	}
 	if(DataPos>=256)
 	{
 		DataPos=0;
@@ -206,10 +213,10 @@ void USART2_IRQHandler(void)
 	}
 
   /* USER CODE END USART2_IRQn 0 */
-  HAL_UART_IRQHandler(&huart2);
+//  HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-  TIM6->CR1 |=1U;	//ENABLE TI2MER 6
-  TIM7->CR1 |=1U;
+	TIM6->CR1 |=1U;	//ENABLE TI2MER 6
+	TIM7->CR1 |=1U;
   /* USER CODE END USART2_IRQn 1 */
 }
 

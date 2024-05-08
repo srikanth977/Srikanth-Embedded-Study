@@ -100,7 +100,8 @@ int main(void)
   MX_TIM6_Init();
   MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  Modbus_Registers_Init();
+  MB_Init();
+
 
   /* USER CODE END 2 */
 

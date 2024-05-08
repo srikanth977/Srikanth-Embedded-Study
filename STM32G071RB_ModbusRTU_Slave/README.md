@@ -13,3 +13,4 @@ List of uploads (Refer Github tag for corresponding Chapter):
 1. Ch01 : Holding register Read. Basic with exception codes 01, 02,03 implemented.
 2. Ch02 : Discrete Coil Read, Discrete Input Read and Analog Input Read are added.
 3. Ch03 : Implementation of Inter character break timeout & Inter-frame delay timers for processing of Modbus messages, Calculation & comparision of Received Modbus Frame's CRC
+4. Ch04 : Final zip file implemented with write functions and diagnostic function code.
