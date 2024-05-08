@@ -40,6 +40,9 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+TIM_HandleTypeDef htim6;
+TIM_HandleTypeDef htim7;
+
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
@@ -50,6 +53,8 @@ UART_HandleTypeDef huart2;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_TIM6_Init(void);
+static void MX_TIM7_Init(void);
 /* USER CODE BEGIN PFP */
 unsigned char MY_SLAVE_ID;
 volatile unsigned char ResponseFrameSize;
@@ -92,11 +97,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
+  MX_TIM6_Init();
+  MX_TIM7_Init();
   /* USER CODE BEGIN 2 */
-  unsigned int HoldingRegSize = (sizeof(HoldingRegisters)/sizeof(HoldingRegisters[0]));
-  unsigned int InputRegSize = (sizeof(InputRegisters)/sizeof(InputRegisters[0]));
-  unsigned int DiscreteInputsSize = (sizeof(DiscreteInputs)/sizeof(DiscreteInputs[0]));
-  unsigned int CoilsSize = (sizeof(Coils)/sizeof(Coils[0]));
+  Modbus_Registers_Init();
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -106,44 +111,6 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if((DataPos>=8u) & ((data_in[0]==MY_SLAVE_ID)))
-	  {
-		  DataPos=0;
-		  //STEP 2: Check function code
-		  switch(data_in[1])
-		  {
-		  case 0x01:
-		  {
-			  //checking if requested register count fits in data buffer (256 size - 6)
-			  MBProcessBits(Coils, CoilsSize);
-		  }
-		  break;
-		  case 0x02:
-		  {
-			  //checking if requested register count fits in data buffer (256 size - 6)
-			  MBProcessBits(DiscreteInputs, DiscreteInputsSize);
-		  }
-		  break;
-		  case 0x03:
-		  {
-			  //checking if requested register count fits in data buffer (256 size - 6)
-			  MBProcessRegisters(HoldingRegisters, HoldingRegSize);
-		  }
-		  break;
-		  case 0x04:
-		  {
-			  //checking if requested register count fits in data buffer (256 size - 6)
-			  MBProcessRegisters(InputRegisters, InputRegSize);
-		  }
-		  break;
-		  default:
-		  {
-			  MBException(0x01); //Illegal function code 01
-			  MBSendData(ResponseFrameSize);
-		  }
-		  break;
-		  }
-	  }
   }
 
   /* USER CODE END 3 */
@@ -196,6 +163,86 @@ void SystemClock_Config(void)
 }
 
 /**
+  * @brief TIM6 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM6_Init(void)
+{
+
+  /* USER CODE BEGIN TIM6_Init 0 */
+
+  /* USER CODE END TIM6_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM6_Init 1 */
+
+  /* USER CODE END TIM6_Init 1 */
+  htim6.Instance = TIM6;
+  htim6.Init.Prescaler = 63;
+  htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim6.Init.Period = 781;
+  htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_ENABLE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim6, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM6_Init 2 */
+  TIM6->DIER |=1U;	//ENABLE COUNTER OVER FLOW INTERRUPT
+  TIM6->SR =0U;		//CLEAR INTERRUPT BIT
+  TIM6->CR1 &=~(1U);	//STOP TIMER
+  /* USER CODE END TIM6_Init 2 */
+
+}
+
+/**
+  * @brief TIM7 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM7_Init(void)
+{
+
+  /* USER CODE BEGIN TIM7_Init 0 */
+
+  /* USER CODE END TIM7_Init 0 */
+
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+
+  /* USER CODE BEGIN TIM7_Init 1 */
+
+  /* USER CODE END TIM7_Init 1 */
+  htim7.Instance = TIM7;
+  htim7.Init.Prescaler = 63;
+  htim7.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim7.Init.Period = 1823;
+  htim7.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim7) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_ENABLE;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim7, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM7_Init 2 */
+  TIM7->DIER |=1U;	//ENABLE COUNTER OVER FLOW INTERRUPT
+  TIM7->SR =0U;		//CLEAR INTERRUPT BIT
+  TIM7->CR1 &=~(1U);	//STOP TIMER
+  /* USER CODE END TIM7_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -211,7 +258,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 9600;
+  huart2.Init.BaudRate = 19200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;

@@ -15,6 +15,12 @@ extern unsigned char MY_SLAVE_ID;
 extern volatile unsigned char ResponseFrameSize;
 extern volatile unsigned char data_in[MaxFrameIndex+1];
 extern volatile unsigned int DataPos;
+extern volatile unsigned int TotalCharsReceived;
+
+extern unsigned int HoldingRegSize;
+extern unsigned int InputRegSize;
+extern unsigned int CoilsRegsize;
+extern unsigned int DiscreteInputRegsize;
 
 //Holding Register Array
 static unsigned int HoldingRegisters[] = {
@@ -70,5 +76,6 @@ void MBException(unsigned char exceptionCode);
 void MBProcessRegisters(unsigned int *InArr, unsigned int InArrSize);
 void MBProcessBits(unsigned char *InArr, unsigned int InArrSize);
 void AppendBitsToRegisters(unsigned int StAddr, unsigned int count, unsigned char *inreg, volatile unsigned char *outreg);
-
+void CheckMBPDU(void);
+void Modbus_Registers_Init(void);
 #endif /* MODBUSRTU_SLAVE_INC_MODBUSRS232SLAVE_H_ */

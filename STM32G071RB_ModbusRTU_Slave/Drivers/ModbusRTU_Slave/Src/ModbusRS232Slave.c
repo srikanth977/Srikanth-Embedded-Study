@@ -7,6 +7,73 @@
 #include "main.h"
 #include "ModbusRS232Slave.h"
 
+volatile unsigned int TotalCharsReceived;
+unsigned int HoldingRegSize;
+unsigned int InputRegSize;
+unsigned int CoilsRegsize;
+unsigned int DiscreteInputRegsize;
+
+void Modbus_Registers_Init()
+{
+	HoldingRegSize = (sizeof(HoldingRegisters)/sizeof(HoldingRegisters[0]));
+	InputRegSize = (sizeof(InputRegisters)/sizeof(InputRegisters[0]));
+	CoilsRegsize=(sizeof(Coils)/sizeof(Coils[0]));
+	DiscreteInputRegsize = (sizeof(DiscreteInputs)/sizeof(DiscreteInputs[0]));
+}
+
+
+void CheckMBPDU()
+{
+	unsigned int CharCount=0;
+	CharCount = TotalCharsReceived;
+	TotalCharsReceived=0;
+
+	if((CharCount>=4u) & ((data_in[0]==MY_SLAVE_ID)))
+
+	{
+		//Check inbound frame CRC
+		unsigned int crcvalue=CRC16(data_in,(CharCount-2));
+
+		if((data_in[CharCount-2] ==(unsigned char)(crcvalue)) &					//lower byte at higher register
+					(data_in[CharCount-1] ==(unsigned char)(crcvalue>>8)))		//higher byte at lower register
+		{
+			CharCount=0;
+
+			//STEP 2: Check function code
+			switch(data_in[1])
+			{
+				case 0x01:
+				{
+					MBProcessBits(Coils,CoilsRegsize);
+					break;
+				}
+				case 0x02:
+				{
+					MBProcessBits(DiscreteInputs,DiscreteInputRegsize);
+				}
+				break;
+				case 0x03:
+				{
+				//checking if requested register count fits in data buffer (256 size - 6)
+					MBProcessRegisters(HoldingRegisters,HoldingRegSize);
+				}
+				break;
+				case 0x04:
+				{
+				//checking if requested register count fits in data buffer (256 size - 6)
+					MBProcessRegisters(InputRegisters,InputRegSize);
+				}
+				break;
+				default:
+				{
+					MBException(0x01); //Illegal function code 01
+					MBSendData(ResponseFrameSize);
+				}
+				break;
+			}
+		}
+	}
+}
 unsigned int MBRegisterCount(void)
 {
 	return (data_in[5]|(data_in[4]<<8));
@@ -70,11 +137,11 @@ void MBProcessRegisters(unsigned int *InArr, unsigned int InArrSize)
 		unsigned int EndAddress = StAddress + RegCount - 1;
 
 		//We will simply check if the end address is inside the size of our holding register
-		if(EndAddress<=(InArrSize-1))
+		if(EndAddress<=(InArrSize-1u))
 		{
 			//Process the request
 			data_in[2]=(unsigned char)(RegCount*2);	//fill the byte count in the data array
-			AppendDatatoMBRegister(StAddress,RegCount,InArr,data_in);	//fill data in the data register
+			AppendDatatoMBRegister(StAddress,RegCount,HoldingRegisters,data_in);	//fill data in the data register
 			AppendCRCtoMBRegister(3+RegCount*2);
 			MBSendData(ResponseFrameSize);
 		}
@@ -90,6 +157,7 @@ void MBProcessRegisters(unsigned int *InArr, unsigned int InArrSize)
 		MBSendData(ResponseFrameSize);
 	}
 }
+
 void MBProcessBits(unsigned char *InArr, unsigned int InArrSize)
 {
 	//First check what is the count of bits requested
@@ -157,5 +225,6 @@ void AppendBitsToRegisters(unsigned int StAddr, unsigned int count, unsigned cha
 		} else *(outreg+3+(c/8))&=~(1<<(c-((c/8)*8)));	//else clear the bit in target array
 	}
 }
+
 
 

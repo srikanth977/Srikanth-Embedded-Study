@@ -56,6 +56,8 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern TIM_HandleTypeDef htim6;
+extern TIM_HandleTypeDef htim7;
 extern UART_HandleTypeDef huart2;
 /* USER CODE BEGIN EV */
 
@@ -142,18 +144,72 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles TIM6, DAC1 and LPTIM1 interrupts (LPTIM1 interrupt through EXTI line 29).
+  */
+void TIM6_DAC_LPTIM1_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM6_DAC_LPTIM1_IRQn 0 */
+	if(TIM6->SR ==1U)
+	{
+		TIM6->CR1 &=~(1U);	//STOP THE 1.5CHAR TIMER
+		TIM6->CNT=0U;		//CLEAR COUNTER
+		DataPos=0u;			//clear the Indexer and start over
+		TIM6->SR = 0U;		//CLEARING 1.5CHAR TIMER INTERRUPT (IF ANY)
+	}
+  /* USER CODE END TIM6_DAC_LPTIM1_IRQn 0 */
+  HAL_TIM_IRQHandler(&htim6);
+  /* USER CODE BEGIN TIM6_DAC_LPTIM1_IRQn 1 */
+
+  /* USER CODE END TIM6_DAC_LPTIM1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles TIM7 and LPTIM2 interrupts (LPTIM2 interrupt through EXTI line 30).
+  */
+void TIM7_LPTIM2_IRQHandler(void)
+{
+  /* USER CODE BEGIN TIM7_LPTIM2_IRQn 0 */
+	if (TIM7->SR==1U)
+	{
+		TIM7->CR1 &=~(1U);		//STOP 3.5CHAR TIMER
+		TIM7->SR=0U;
+		DataPos=0u;			//clear the Indexer
+		CheckMBPDU();		//Process Modbus frame
+	}
+  /* USER CODE END TIM7_LPTIM2_IRQn 0 */
+//  HAL_TIM_IRQHandler(&htim7);
+  /* USER CODE BEGIN TIM7_LPTIM2_IRQn 1 */
+
+  /* USER CODE END TIM7_LPTIM2_IRQn 1 */
+}
+
+/**
   * @brief This function handles USART2 global interrupt / USART2 wake-up interrupt through EXTI line 26.
   */
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
+	TIM6->CR1 &=~(1U);	//DISABLE TIMER 6
+	TIM7->CR1 &=~(1U);	//DISABLE TIMER 7
+	TIM6->CNT=0U;		//CLEAR COUNTER VALUES
+	TIM7->CNT=0U;		//CLEAR
 
-	  data_in[DataPos]=USART2->RDR;
-	  DataPos+=1;
+	if(DataPos>=256)
+	{
+		DataPos=0;
+	}
+	else
+	{
+		data_in[DataPos]=USART2->RDR;
+		DataPos+=1;
+		TotalCharsReceived =DataPos;
+	}
+
   /* USER CODE END USART2_IRQn 0 */
-//  HAL_UART_IRQHandler(&huart2);
+  HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
-
+  TIM6->CR1 |=1U;	//ENABLE TI2MER 6
+  TIM7->CR1 |=1U;
   /* USER CODE END USART2_IRQn 1 */
 }
 
