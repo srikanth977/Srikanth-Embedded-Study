@@ -20,11 +20,13 @@
 #define DEF_OTA_ACK  0x00    // ACK
 #define DEF_OTA_NACK 0x01    // NACK
 /* Application's Flash Address
- * Size of BOOTLOADER IS 32K, so based on the calculations, below is the address*/
+ * Size of BOOTLOADER IS 32K, so based on the calculations, below is the address
+ * Currently it looks like we cannot make the chip to jump to variably any address
+ * So lets keep a fixed address for now. */
 #define OTA_APP_FLASH_ADDR 0x08020000
 
 /*
- * VARIABLES FOR STORING RECEIVED  */
+ * BUFFER FOR STORING UART DATA  */
 extern uint8_t Rx_Buffer [ DEF_OTA_PACKET_MAX_SIZE ];
 
 
@@ -33,11 +35,11 @@ extern uint8_t Rx_Buffer [ DEF_OTA_PACKET_MAX_SIZE ];
  */
 typedef enum
 {
-  ENM_OTA_PKT_TYP_CMD     	= 1,    // Command
-  ENM_OTA_PKT_TYP_DATA      = 2,    // Data
-  ENM_OTA_PKT_TYP_HEADER    = 3,    // Header
-  ENM_OTA_PKT_TYP_RESPONSE  = 4,    // Response
-  ENM_OTA_PKT_TYP_END       = 5,     // End
+  ENM_OTA_PKT_TYP_CMD		= 1,    // Command
+  ENM_OTA_PKT_TYP_DATA		= 2,    // Data
+  ENM_OTA_PKT_TYP_HEADER	= 3,    // Header
+  ENM_OTA_PKT_TYP_RESPONSE	= 4,    // Response
+  ENM_OTA_PKT_TYP_END		= 5,     // End
   ENM_OTA_PKT_TYP_ERR		= 0
 }ENM_OTA_PKT_TYP_;
 /*
@@ -58,8 +60,6 @@ typedef struct
   uint32_t  crc;
   uint8_t   eof;
 }__attribute__((packed)) STU_OTA_COMMAND_;
-
-
 
 /*
  * Return codes
@@ -118,7 +118,7 @@ typedef enum
 
 
 /*
- * OTA meta info
+ * OTA meta info (INFORMATION RELATED TO THE APPLICATION BINARY)
  */
 typedef struct
 {
@@ -161,8 +161,11 @@ typedef struct
   uint8_t     packet_type;
   uint16_t    data_len;
   uint8_t     *data;
+// CRC & EOF are not considered in the Structure but they are embedded in the Data buffer sent by PCTool
 }__attribute__((packed)) STU_OTA_DATA_;
 
+
+/* Not used for now, let it be for now */
 typedef struct
 {
 	uint16_t pktlen;
