@@ -7,6 +7,7 @@
 
 extern UART_HandleTypeDef huart1;
 
+/* Initial OTA state */
 ENM_OTA_STATE_ ota_state = ENM_OTA_STATE_IDLE;
 /* Firmware Total Size that we are going to receive */
 static uint32_t ota_fw_total_size;
@@ -15,15 +16,34 @@ static uint32_t ota_fw_crc;
 /* Firmware Size that we have received */
 static uint32_t ota_fw_received_size;
 
+/* Function that writes to Flash - NOT USED FOR NOW*/
 ENM_OTA_RET_ ota_download_and_flash( void );
+
+/* Main function for this library */
 ENM_OTA_RET_ ota_begin(void);
-//ENM_OTA_PKT_TYP_ receive_data(void);
+
+/* Function to receive data from PC tool over UART progocol*/
 uint16_t receive_data(void);
-static void ota_send_resp( uint8_t type );
+
+/* Function to process received data */
 static ENM_OTA_RET_ ota_process_data( uint8_t *buf, uint16_t len );
+
+/* Function to send Acknowledgement after processing of received data */
+static void ota_send_resp( uint8_t type );
+
+/* Function that writes to Flash */
 static HAL_StatusTypeDef write_data_to_flash_app( uint8_t *data,uint16_t data_len, bool is_first_block );
+
+/* Function to calculate a minimal crc32, Function is located in file CRC32Processing.c */
 uint32_t crc32b(unsigned char *message,uint16_t usDataLen);
 
+/****************************************************************
+* Receive data over UART from PC tool:
+* During reception, some basic integrity checks of SOF,EOF are checked in this function iteslf
+* Finally after this basic check and collecting all the data from PC tool, length (variable index) is passed back.
+* CRC is not checked in this function so as NOT TO disturb the reception activity
+* In this version, TIMEOUT management of the communication line is not considered
+*****************************************************************/
 uint16_t receive_data()		//return the length of packet
 {
 	uint16_t data_len=0;
@@ -81,6 +101,20 @@ uint16_t receive_data()		//return the length of packet
 
 }
 
+/****************************************************************
+* Main function of this library
+* This function checks data reception from PC tool, processes and based on the data received, a STATE MACHINE is updated
+* Following are the STATE MACHINE (enums) for this library
+* 	OTA_STATE_IDLE    = 1,
+*  	OTA_STATE_START   = 2,
+*  	OTA_STATE_HEADER  = 3,
+*	OTA_STATE_DATA    = 4,
+*	OTA_STATE_END     = 5,
+* The program begins with START state and continues till IDLE state.
+* CRC processing on the received data packet is performed before processing of data
+* Based on the return of ota_process_data, response is sent to PC Tool.
+* The expected change of states and their meanings are explained in function ota_process_data
+*****************************************************************/
 ENM_OTA_RET_ ota_begin(void)
 {
 	uint32_t crcvalue=0;
@@ -133,12 +167,30 @@ ENM_OTA_RET_ ota_begin(void)
 	return ret;
 }
 
-/**
-  * @brief Process the received data from UART4.
-  * @param buf buffer to store the received data
-  * @param max_len maximum length to receive
-  * @retval ETX_OTA_EX_
-  */
+/****************************************************************
+* Data processor and runs the STATEMACHINE
+* This function processes data based on their packet type and current STATE.
+* Flow of STATE MACHINE is  as follows
+* 	OTA_STATE_START    = 1,
+*	- Received data is checked if a start command is received,
+* 	- On verification, STATE is changed to OTA_STATE_HEADER and breaks out of this function with return OK, else Error.
+*
+*  	OTA_STATE_HEADER  = 3,
+*	- Received data is checked if a Header packed is received,
+*	- On verification, Firmware's meta data (total size in bytes) is stored
+*	- STATE is changed to OTA_STATE_DATA and breaks out of this function with return OK, else Error.
+*
+*	OTA_STATE_DATA    = 4,
+*	- Received data is checked if its a DATA packet
+*	- There may be N number of times the STATE may stay in DATA cycle
+*	- Every time a packet is received, this data is directly written to FLASH
+*	- On receiving all the data, state is changed to OTA_STATE_END and breaks out of this function with return OK, else Error.
+*
+*	OTA_STATE_END     = 5,
+*	- Received data is checked if a start command is received,
+* 	- On verification, STATE is changed to OTA_STATE_IDLE and breaks out of this function with return OK, else Error.
+*
+*****************************************************************/
 static ENM_OTA_RET_ ota_process_data( uint8_t *buf, uint16_t len )
 {
 //	uint32_t crcvalue=0;
@@ -174,12 +226,6 @@ static ENM_OTA_RET_ ota_process_data( uint8_t *buf, uint16_t len )
       case ENM_OTA_STATE_START:
       {
     	  STU_OTA_COMMAND_ *cmd = (STU_OTA_COMMAND_*)buf;
-//    	  /* TODO : check CRC in receive_data() */
-//    	  crcvalue= crc32b(buf,len-5);
-//    	  if (crcvalue != cmd->crc)
-//    	  {
-//    		  ret= ENM_OTA_RET_ERR;
-//    	  }
         if( (cmd->packet_type == ENM_OTA_PKT_TYP_CMD) &&
         		(cmd->cmd == ENM_OTA_CMD_START) )
         {
@@ -195,13 +241,6 @@ static ENM_OTA_RET_ ota_process_data( uint8_t *buf, uint16_t len )
         STU_OTA_HEADER_ *header = (STU_OTA_HEADER_*)buf;
         if( header->packet_type == ENM_OTA_PKT_TYP_HEADER )
         {
-//        	/* TODO : check CRC in receive_data() */
-//        	crcvalue= crc32b(buf,len-5);
-//        	if (crcvalue != header->crc)
-//        	{
-//        		ret= ENM_OTA_RET_ERR;
-//        		break;
-//        	}
         	/* Store FW details */
         	ota_fw_total_size = header->meta_data.package_size;
         	ota_fw_crc        = header->meta_data.package_crc;
@@ -221,13 +260,7 @@ static ENM_OTA_RET_ ota_process_data( uint8_t *buf, uint16_t len )
         printf("OTA STATE=DATA\n");
         if( data->packet_type == ENM_OTA_PKT_TYP_DATA )
         {
-//        	/* TODO : check CRC in receive_data() */
-//        	crcvalue= crc32b(buf,len-5);
-//        	if (crcvalue != data->crc)
-//        	{
-//        		ret= ENM_OTA_RET_ERR;
-//        		break;
-//        	}
+
           /* write the chunk to the Flash (App location) */
           ex = write_data_to_flash_app( buf+4, data_len, ( ota_fw_received_size == 0) );
           if( ex == HAL_OK )
@@ -255,20 +288,9 @@ static ENM_OTA_RET_ ota_process_data( uint8_t *buf, uint16_t len )
         {
 
         	printf("\nSTATE=END\n");
-
-
-//        	//TODO: Very full package CRC
-//        	crcvalue= crc32b(buf,len-5);
-//        	if (crcvalue != cmd->crc)
-//        	{
-//        		ret= ENM_OTA_RET_ERR;
-//        		break;
-//        	}
-
         	ota_state = ENM_OTA_STATE_IDLE;
         	ret = ENM_OTA_RET_OK;
           }
-//        else ota_send_resp(DEF_OTA_NACK,ENM_OTA_PKT_TYP_CMD);
       }
       break;
 
@@ -284,11 +306,10 @@ static ENM_OTA_RET_ ota_process_data( uint8_t *buf, uint16_t len )
   return ret;
 }
 
-/**
-  * @brief Send the response.
-  * @param type ACK or NACK
-  * @retval none
-  */
+/****************************************************************
+* Function to send response to PC tool
+*
+*****************************************************************/
 static void ota_send_resp( uint8_t feedback)
 {
 	STU_OTA_RESP_ *rsp = (STU_OTA_RESP_*)Rx_Buffer;
@@ -306,16 +327,13 @@ static void ota_send_resp( uint8_t feedback)
 	  while( !( USART1->SR & USART_SR_TXE) ) {};	//wait till transmit buffer is empty
 	  USART1->DR = Rx_Buffer[c];
   }
-  //HAL_UART_Transmit(&huart2, (uint8_t *)&rsp, sizeof(ETX_OTA_RESP_), HAL_MAX_DELAY);
 }
 
-/**
-  * @brief Write data to the Application's actual flash location.
-  * @param data data to be written
-  * @param data_len data length
-  * @is_first_block true - if this is first block, false - not first block
-  * @retval HAL_StatusTypeDef
-  */
+
+/****************************************************************
+* Write data to the Application's actual flash location.
+*
+*****************************************************************/
 static HAL_StatusTypeDef write_data_to_flash_app( uint8_t *data,
                                         uint16_t data_len, bool is_first_block )
 {
