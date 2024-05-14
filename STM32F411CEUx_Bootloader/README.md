@@ -5,10 +5,15 @@
 2. Minimized HAL library usage in ````UART_Receive````. Plan is to remove entire HAL library and upload the bare metal version.
 3. Instead of LED's, used ST7735 SPI LCD for messages indications
 
+### Overview of the program flow:
+![FW_Update_process](https://github.com/srikanth977/Srikanth-Embedded-Study/assets/11206048/43eedbf1-6fc8-4afe-9092-f64a31ee22a2)
+
 ### Next plan
 1. Bare metal implementation of the code
 2. Checksum in the firmware file and verifying its integrity
 3. Maintaining two regions of Flash as RUNNING & DOWNLOADED configurations to minimize loosing running program in case of flash errors.
+4. Using Builtin CRC of STM32F4
+5. Encrypted communication
 
 ### Credits and References:
 A good resource for understanding of bootloader working and its design is present in folder ````REFERENCE````.
