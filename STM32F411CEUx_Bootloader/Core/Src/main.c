@@ -33,6 +33,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+/*
+Below definitions are made in such a way that the printf instruction can be 
+used for TRACE or SPI LCD screen for user.
+*/
 //#define ENABLE_TRACE
 #ifdef ENABLE_TRACE
 #define DEMCR                 *((volatile uint32_t*) 0xE000EDFCu)
@@ -67,7 +71,17 @@ static void MX_GPIO_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
+
+/* 
+Function Prototypes for Bootloader design
+This is the main function that waits for communication from PC tool and initiates 
+flash writes.
+*/
 ENM_OTA_RET_ ota_begin( void );
+
+/*
+This function is used to instruct to go to the application address.
+*/
 static void goto_application(void);
 
 
@@ -110,7 +124,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-
+	/* Initialization of ST7735 LCD SCREEN */
 	ST7735_Init();
 	ST7735_FillScreen(ST7735_COLOUR_BLACK);
 	printf("Bootloader:%d.%d\n",BL_Version[0],BL_Version[1]);
@@ -135,18 +149,18 @@ int main(void)
 	if( OTA_Pin_state == GPIO_PIN_SET )
 	{
 		printf("ENTERED OTA.\n");
+
+		/* Also indicating overy BOOT LED, incasae LCD screen is not available */
 		HAL_GPIO_WritePin(BOOTMODE_LED_GPIO_Port, BOOTMODE_LED_Pin, GPIO_PIN_RESET);
 		HAL_Delay(500);
 		HAL_GPIO_WritePin(BOOTMODE_LED_GPIO_Port, BOOTMODE_LED_Pin, GPIO_PIN_SET);
-		//USART1->CR1 |= USART_CR1_RXNEIE;		/* Enable Receive interrupt */
 		/* OTA Request. Receive the data from the UART4 and flash */
 		if(ota_begin() != ENM_OTA_RET_OK)
 		{
 			/* Error. Don't process. */
-			//  				//printf("OTA Update : ERROR!!! HALT!!!\r\n");
 			while(1)
 			{
-
+			
 			}
 		}
 		else
@@ -349,12 +363,14 @@ static void goto_application(void)
 {
 	printf("ENTERING APPLICATION\n");
 
+	//Defining the Address of RESET HANDLER of application.
+	
   void (*app_reset_handler)(void) = (void*)(*((volatile uint32_t*) (OTA_APP_FLASH_ADDR + 4U)));
 
   // Turn OFF the Green Led to tell the user that Bootloader is not running
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_0, GPIO_PIN_RESET );    //Green LED OFF
 
-  /* Reset the Clock */
+  /* De Initializing all the peripherals and clocks before switching*/
   HAL_RCC_DeInit();
   HAL_DeInit();
   HAL_UART_DeInit(&huart1);
