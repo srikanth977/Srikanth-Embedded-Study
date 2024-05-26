@@ -16,6 +16,8 @@ In order to backup running firmware, we need to know the end address of the appl
 In Order to achieve this, during deployment of firmware, the size is stored in Sector 2 (configured in Bootloader) at address ```0x08008000```
 So during second deployment of application, we are checking this location for the size of running firmware and backing up to PC.
 
+Signal exchange between Micro and PC:
+![Signal Exchange Process](https://github.com/srikanth977/srikanth977.github.io/blob/STM32F411CEUx_Bootloader/STM32F411CEUx_Bootloader/BOOKS/FW_Updater_Signal_Exchange.png)
 ## Version : 1.1
 ### Whats New
 1. Added Minimal CRC Checks on the PCTool as well as in Microcontroller 
