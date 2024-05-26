@@ -1,4 +1,21 @@
 # Bootloader for STM32F411CEUx
+## Version : 2.0
+This version brings a major overhaul of the bootloader application in both the micro as well as pc tool.
+
+### Concept:
+STM32F411CEUx has the application loaded at ```0x08020000```.
+
+In the design so far, we are overwriting the FLASH where the current firmware is already working. So during the entire process, if there is any breakage in firmware upgrade process, we may losse the running firmware also.
+
+To avoid such situation, I have proposed the design to backup the firmware to PC as binary file and then proceed with firmware update.
+This will ensure that there is atleast the backup of running firmware and can be restored using the same procedure if upgrade fails.
+
+### Challenge:
+In order to backup running firmware, we need to know the end address of the application as it may not occupy entire ```128KBytes``` and to optimize, we need to really copy only the REAL firmware and exlude the ```NULLS```.
+
+In Order to achieve this, during deployment of firmware, the size is stored in Sector 2 (configured in Bootloader) at address ```0x08008000```
+So during second deployment of application, we are checking this location for the size of running firmware and backing up to PC.
+
 ## Version : 1.1
 ### Whats New
 1. Added Minimal CRC Checks on the PCTool as well as in Microcontroller 

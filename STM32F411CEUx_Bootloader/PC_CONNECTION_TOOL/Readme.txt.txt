@@ -1,0 +1,1 @@
+g++ main.cpp cppRS232.cpp -Wall -Wextra -o2 -o RS232FileTransfer.exe

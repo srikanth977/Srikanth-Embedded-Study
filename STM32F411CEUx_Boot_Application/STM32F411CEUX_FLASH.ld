@@ -148,6 +148,7 @@ SECTIONS
 
   } >RAM AT> FLASH
 
+
   /* Uninitialized data section into "RAM" Ram type memory */
   . = ALIGN(4);
   .bss :

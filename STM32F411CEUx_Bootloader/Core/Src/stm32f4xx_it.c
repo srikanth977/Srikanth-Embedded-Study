@@ -42,8 +42,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-uint16_t DataIndex;
-uint8_t Rx_Buffer [ DEF_OTA_PACKET_MAX_SIZE ];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

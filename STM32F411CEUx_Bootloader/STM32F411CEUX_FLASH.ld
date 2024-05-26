@@ -46,6 +46,7 @@ MEMORY
 {
   RAM    (xrw)    : ORIGIN = 0x20000000,   LENGTH = 128K
   FLASH    (rx)    : ORIGIN = 0x8000000,   LENGTH = 32K	/* Bootloader block size is set to 32KB */
+  CONFIGS  (rx)		: ORIGIN = 0x08008000, LENGTH = 16K	/* To store configurations data  - need to keep in RAM after battery implementation*/
 }
 
 /* Sections */

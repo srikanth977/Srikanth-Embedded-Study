@@ -103,7 +103,7 @@ int main(void)
   MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   ST7735_Init();
-  ST7735_FillScreen(ST7735_COLOUR_BLUE);
+  ST7735_FillScreen(ST7735_COLOUR_GREEN);
 //  printf("Application Started : %d.%d \n\r",APP_Version[0],APP_Version[1]);
 
   /* USER CODE END 2 */

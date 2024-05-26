@@ -46,8 +46,8 @@ used for TRACE or SPI LCD screen for user.
 #define ITM_TRACE_EN          *((volatile uint32_t*) 0xE0000E00u)
 #endif
 
-#define MAJOR		1		// Major revision
-#define MINOR		1		//Minor revision
+#define MAJOR		2		// Major revision
+#define MINOR		0		//Minor revision
 
 /* USER CODE END PD */
 
@@ -89,6 +89,7 @@ static void goto_application(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
 
 /* USER CODE END 0 */
 
@@ -375,11 +376,18 @@ static void goto_application(void)
   HAL_DeInit();
   HAL_UART_DeInit(&huart1);
   HAL_SPI_DeInit(&hspi1);
+
+
+  // Set Stack pointer
   __set_MSP(*(volatile uint32_t*) OTA_APP_FLASH_ADDR);
+
+  // clear SysTick timer
   SysTick->CTRL = 0;
   SysTick->LOAD = 0;
   SysTick->VAL = 0;
 
+  // Set Interrupt Vector OFFSET
+  SCB->VTOR = FLASH_BASE | OTA_APP_FLASH_ADDR;
   /* Jump to application */
   app_reset_handler();    //call the app reset handler
 }

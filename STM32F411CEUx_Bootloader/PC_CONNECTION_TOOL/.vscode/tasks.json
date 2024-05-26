@@ -1,0 +1,25 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "BUILD WITH G++ (MGW64)",
+            "command": "C:\\mingw64\\bin\\g++.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+                "${workspaceFolder}/**.cpp",                    //"${workspaceFolder}/**.cpp",   or "${fileDirname}/**.cpp"
+                "-o",
+                "${workspaceFolder}\\RS232FileTransfer.exe"     // "${Workspace}\\RS232FileTransfer.exe" or "${fileDirname}\\RS232FileTransfer.exe"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"                                       //"${fileDirname}"  OR "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "compiler: C:\\mingw64\\bin\\g++.exe"
+        }
+    ]
+}

@@ -45,6 +45,7 @@ defined in linker script */
 .word  _ebss
 /* stack used for SystemInit_ExtMemCtl; always internal RAM used */
 
+
 /**
  * @brief  This is the code that gets called when the processor first
  *          starts execution following a reset event. Only the absolutely
@@ -58,7 +59,7 @@ defined in linker script */
   .weak  Reset_Handler
   .type  Reset_Handler, %function
 Reset_Handler:  
-  ldr   sp, =_estack    		 /* set stack pointer */
+  ldr   sp, =_estack    		 /* set stack pointer */		// THIS IS NOW DONE IN BOOTLOADER ITSELF
 
 /* Call the clock system initialization function.*/
   bl  SystemInit   
@@ -124,6 +125,7 @@ Infinite_Loop:
   .type  g_pfnVectors, %object
     
 g_pfnVectors:
+
   .word  _estack
   .word  Reset_Handler
   .word  NMI_Handler

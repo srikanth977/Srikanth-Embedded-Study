@@ -1,0 +1,210 @@
+
+///////////////////////////////////////////VERSION 2 - CHILI BEGIN - WORKING MINIMAL SETTINGS
+// //SOURCE: https://stackoverflow.com/questions/68624350/readfile-code-using-win32-api-to-read-from-serial-port-very-slow/68628274#comment138391030_68628274
+// #include <windows.h>
+// #include <stdio.h>
+// #include <string.h>
+// #include <conio.h>
+// #include <stdint.h>
+// #include <time.h>
+// #include <tchar.h>
+// #include <iostream>
+
+// #define SUCCESS 0
+// #define BUF_SIZE 1024
+
+// char *hComm_init_error_modes[7] = {
+//     "", // NOT INTENDED FOR USE
+//     "", // NOT INTENDED FOR USE
+//     "ERROR OPENING SERIAL PORT\n",
+//     "ERROR RETRIEVING COMM STATE\n",
+//     "ERROR CONFIGURING COMM STATE\n",
+//     "ERROR RETRIEVING COMM TIMEOUTS\n",
+//     "ERROR CONFIGURING COMM TIMEOUTS\n",
+// };
+
+// HANDLE hComm;
+
+// void print_m_buf();
+
+// uint8_t m_buf[BUF_SIZE];
+
+// int hComm_init(char *port)
+// {
+
+//     hComm = CreateFileA(port,                         // PORT NAME
+//                         GENERIC_READ | GENERIC_WRITE, // READ/WRITE
+//                         0,                            // NO SHARING
+//                         NULL,                         // NO SECURITY
+//                         OPEN_EXISTING,                // OPEN EXISTING PORT ONLY
+//                         0,                            // NON OVERLAPPED I/O
+//                         NULL);                        // NULL FOR COMM DEVICES
+
+//     if (hComm == INVALID_HANDLE_VALUE)
+//     {
+//         return 2;
+//     }
+
+//     DCB commStateConfig;
+
+//     if (!GetCommState(hComm, &commStateConfig))
+//     {
+//         return 3;
+//     }
+
+//     commStateConfig.BaudRate = 9600;
+//     commStateConfig.ByteSize = 8;
+
+//     if (!SetCommState(hComm, &commStateConfig))
+//     {
+//         return 4;
+//     }
+
+//     COMMTIMEOUTS comm_timeouts;
+
+//     if (!GetCommTimeouts(hComm, &comm_timeouts))
+//     {
+//         return 5;
+//     }
+
+//     comm_timeouts.ReadIntervalTimeout = 0;
+//     comm_timeouts.ReadTotalTimeoutMultiplier = 0;
+//     comm_timeouts.ReadTotalTimeoutConstant = 1;
+//     comm_timeouts.WriteTotalTimeoutMultiplier = 0;
+//     comm_timeouts.WriteTotalTimeoutConstant = 0;
+
+//     if (!SetCommTimeouts(hComm, &comm_timeouts))
+//     {
+//         return 6;
+//     }
+
+//     return 0;
+// }
+
+// int main(int argc, char *argv[])
+// {
+//     int ret = 1;
+//     do
+//     {
+//         /* code */
+
+//         if (argc != 2)
+//         {
+//             printf("\nWrong number of inputs!"
+//                    " Please provide the com port number and nothing else.\n");
+//             ret = 0;
+//             break;
+//             // return ret;
+//         }
+//         char portname[11 + strlen(argv[1])];
+
+//         strcpy(portname, "\\\\.\\COM");
+//         strcat(portname, argv[1]);
+
+//         int err = hComm_init(portname);
+
+//         if (err != SUCCESS)
+//         {
+//             printf("%s", hComm_init_error_modes[err]);
+//             ret = 0;
+//             break; // break from do while
+//             // goto RUNTIME_ERROR;
+//         }
+
+//         printf("OPENED AND CONFIGURED SERIAL PORT SUCCESSFULLY\n");
+
+//         if (!SetCommMask(hComm, EV_RXCHAR | EV_ERR))
+//         {
+//             printf("SetCommMask failed with error code: %ld\n", GetLastError());
+//             ret = 0;
+//             break; // break from do while
+//             // goto RUNTIME_ERROR;
+//         }
+
+//         DWORD dwEvtMask;
+//         DWORD ActualReadCount;
+//         int readcount = 0;
+
+//         int ret = 0;
+//         unsigned int iter = 0;
+
+//         while (1)
+//         {
+//             ActualReadCount = 0;
+//             dwEvtMask = 0;
+
+//             if (WaitCommEvent(hComm, &dwEvtMask, NULL))
+//             {
+//                 if (dwEvtMask & EV_ERR)
+//                 {
+//                     printf("Wait failed with error %ld.\n", GetLastError());
+//                     ret = 0;
+//                     break;
+//                 }
+
+//                 // NOTE/BUG: this only reads _one_ char at a time and uses an extra buffer
+
+//                 // NOTE/FIX: read many bytes at once -- put them directly into the final buffer
+//                 if (dwEvtMask & EV_RXCHAR)
+//                 {
+//                     if (!ReadFile(hComm,
+//                                   &m_buf[readcount], sizeof(m_buf) - readcount,
+//                                   &ActualReadCount, NULL))
+//                     {
+//                         printf("\n\nERROR when reading\n\n");
+//                         ret = 0;
+//                         break;
+//                     }
+//                     //printf("Actual Read %d bytes so far.\n", ActualReadCount);
+
+//                     // increase total accumulated count
+//                     readcount += ActualReadCount;
+//                 }
+
+//                 // NOTE/BUG: better to use ">=" rather than "=="
+
+//                 if (readcount >= BUF_SIZE)
+//                 {
+
+//                     // double diff_ms = (clock() - start) * 1000. / CLOCKS_PER_SEC;
+
+//                     print_m_buf(); // for testing only, remove later
+//                     printf("Read complete\n");
+//                     // printf("Time spent reading: %f ms\n", diff_ms);
+//                     break;
+//                 }
+//             }
+
+//             // handle WaitCommEvent error?
+//             else
+//             {
+//                 DWORD dwRet = GetLastError();
+//                 if (ERROR_IO_PENDING == dwRet)
+//                 {
+//                     printf("I/O is pending...\n");
+//                     // To do.
+//                 }
+//                 else
+//                 {
+//                     // NOTE: no need to call GetLastError twice
+//                     printf("Wait failed with error %ld.\n", dwRet);
+//                 }
+//             }
+//         }
+//     } while (0);
+//     if (ret < 1)
+//     {
+//         printf("Runtime error, program exited.\n");
+//     }
+//     CloseHandle(hComm);
+//     return ret;
+// }
+
+// void print_m_buf()
+// {
+//     for (unsigned int i = 0; i < BUF_SIZE; i=i + 4)
+//     {
+//         printf("Address [%d] : charactes received are 0x%02x %02x %02x %02x\n", i,m_buf[i], m_buf[i + 1], m_buf[i + 2], m_buf[i + 3]);
+//     }
+// }
+///////////////////////////////////////////VERSION 2 - CHILI END
